@@ -85,11 +85,22 @@ t = {
 }
 
 def get_explanation(value, mean, std, col_name, is_fr):
-    z = abs((value - mean) / std) if std > 0 else 0
+    """Generate explanation for a single column anomaly"""
+    if std == 0:
+        return ""
+    z = (value - mean) / std
     pct = ((value - mean) / mean * 100) if mean != 0 else 0
-    if z > 3: return f"{col_name}: {abs(pct):.0f}% {'above avg - UNUSUAL' if not is_fr else 'au-dessus - INHABITUEL'}"
-    elif z > 2.5: return f"{col_name}: {abs(pct):.0f}% {'deviation' if not is_fr else 'deviation'}"
-    elif z > 1.8: return f"{col_name}: {'+' if pct > 0 else ''}{pct:.0f}%"
+    abs_z = abs(z)
+    
+    if abs_z > 1.5:
+        direction = "above" if z > 0 else "below"
+        direction_fr = "au-dessus" if z > 0 else "en-dessous"
+        if abs_z > 3:
+            return f"{col_name}: {abs(pct):.0f}% {direction if not is_fr else direction_fr} - UNUSUAL"
+        elif abs_z > 2:
+            return f"{col_name}: {abs(pct):.0f}% {direction if not is_fr else direction_fr}"
+        else:
+            return f"{col_name}: {'+' if pct > 0 else ''}{pct:.0f}%"
     return ""
 
 def gen_invoices():
@@ -195,25 +206,58 @@ if df is not None:
             results['Anomaly_Level'] = t['normal']
             results['Anomaly_Explanation'] = ""
             
-            for idx in range(len(df)):
-                exps = []
-                max_z = 0
-                for col in numeric_cols:
-                    mean, std = df[col].mean(), df[col].std()
-                    if std > 0:
-                        z = abs((df[col].iloc[idx] - mean) / std)
-                        if z > max_z: max_z = z
-                        if z > 1.8:
-                            exp = get_explanation(df[col].iloc[idx], mean, std, col, is_fr)
-                            if exp: exps.append(exp)
-                results.loc[idx, 'Deviation_Score'] = round(max_z, 2)
-                results.loc[idx, 'AI_Score'] = round(min(100, max_z * 25) if max_z > 1.5 else max_z * 10, 1)
-                results.loc[idx, 'Anomaly_Explanation'] = " | ".join(exps)
+            # Calculate stats for each numeric column
+            col_stats = {}
+            for col in numeric_cols:
+                col_stats[col] = {'mean': df[col].mean(), 'std': df[col].std()}
             
-            results.loc[results['Deviation_Score'] > 3.0, 'Anomaly_Level'] = t['critical']
-            results.loc[(results['Deviation_Score'] > 2.5) & (results['Deviation_Score'] <= 3.0), 'Anomaly_Level'] = t['high']
-            results.loc[(results['Deviation_Score'] > 2.0) & (results['Deviation_Score'] <= 2.5), 'Anomaly_Level'] = t['medium']
-            results.loc[(results['Deviation_Score'] > 1.8) & (results['Deviation_Score'] <= 2.0), 'Anomaly_Level'] = t['low']
+            for idx in range(len(df)):
+                explanations = []
+                z_scores = []
+                anomaly_count = 0
+                
+                for col in numeric_cols:
+                    mean = col_stats[col]['mean']
+                    std = col_stats[col]['std']
+                    
+                    if std > 0:
+                        value = df[col].iloc[idx]
+                        z = abs((value - mean) / std)
+                        z_scores.append(z)
+                        
+                        # Count anomalies per column (threshold 1.5)
+                        if z > 1.5:
+                            anomaly_count += 1
+                            exp = get_explanation(value, mean, std, col, is_fr)
+                            if exp:
+                                explanations.append(exp)
+                
+                # Combined score: max z-score + bonus for multiple anomalies
+                max_z = max(z_scores) if z_scores else 0
+                avg_z = np.mean(z_scores) if z_scores else 0
+                
+                # Multi-factor bonus: having multiple anomalous columns increases severity
+                multi_factor_bonus = min(anomaly_count * 0.5, 2.0) if anomaly_count > 1 else 0
+                combined_score = max_z + multi_factor_bonus
+                
+                results.loc[idx, 'Deviation_Score'] = round(combined_score, 2)
+                
+                # AI Score calculation (0-100)
+                if combined_score > 3:
+                    ai_score = min(100, 70 + combined_score * 5)
+                elif combined_score > 2:
+                    ai_score = 50 + combined_score * 10
+                else:
+                    ai_score = combined_score * 15
+                results.loc[idx, 'AI_Score'] = round(ai_score, 1)
+                
+                results.loc[idx, 'Anomaly_Explanation'] = " | ".join(explanations)
+            
+            # Assign risk levels based on combined score
+            results.loc[results['Deviation_Score'] > 4.0, 'Anomaly_Level'] = t['critical']
+            results.loc[(results['Deviation_Score'] > 3.0) & (results['Deviation_Score'] <= 4.0), 'Anomaly_Level'] = t['high']
+            results.loc[(results['Deviation_Score'] > 2.0) & (results['Deviation_Score'] <= 3.0), 'Anomaly_Level'] = t['medium']
+            results.loc[(results['Deviation_Score'] > 1.5) & (results['Deviation_Score'] <= 2.0), 'Anomaly_Level'] = t['low']
             
             results_sorted = results.sort_values('Deviation_Score', ascending=False).reset_index(drop=True)
             anomalies = results_sorted[results_sorted['Anomaly_Level'] != t['normal']]
