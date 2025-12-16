@@ -68,7 +68,7 @@ t = {
     "get_full": "Get Full Desktop Version" if not is_fr else "Version Complete",
     "full_features": "Isolation Forest AI - Data Aggregation - Custom Ratios - 100% Offline - Unlimited Files" if not is_fr else "IA Isolation Forest - Agregation - Ratios - Hors-ligne",
     "what_is": "What is AynalyxAI?" if not is_fr else "Quest-ce que AynalyxAI?",
-    "what_is_desc": "AynalyxAI is an intelligent financial analysis tool that automatically detects anomalies, errors, and fraud in your accounting data using advanced AI algorithms." if not is_fr else "AynalyxAI detecte automatiquement les anomalies et fraudes dans vos donnees comptables.",
+    "what_is_desc": "AynalyxAI is an intelligent financial analysis tool that automatically detects anomalies, errors, and irregularities in your accounting data using advanced AI algorithms." if not is_fr else "AynalyxAI detecte automatiquement les anomalies et irregularites dans vos donnees comptables.",
     "how_works": "How It Works" if not is_fr else "Comment ca Marche",
     "step1": "Upload your Excel/CSV data" if not is_fr else "Telechargez vos donnees",
     "step2": "AI analyzes patterns" if not is_fr else "L IA analyse les patterns",
@@ -78,7 +78,7 @@ t = {
     "adv1_desc": "Analyze thousands of transactions in seconds" if not is_fr else "Analysez des milliers de transactions",
     "adv2_title": "Reduce Errors" if not is_fr else "Reduire les Erreurs",
     "adv2_desc": "Catch mistakes humans might miss" if not is_fr else "Detectez les erreurs cachees",
-    "adv3_title": "Prevent Fraud" if not is_fr else "Prevenir la Fraude",
+    "adv3_title": "Detect Anomalies" if not is_fr else "Detecter les Anomalies",
     "adv3_desc": "Identify suspicious patterns early" if not is_fr else "Identifiez les patterns suspects",
     "example_desc": "Sample data with embedded anomalies. AI will identify unusual patterns." if not is_fr else "Donnees avec anomalies. L IA identifiera les patterns inhabituels.",
     "all_rows_note": "Showing ALL rows sorted by risk. Anomalies highlighted, normal shown for context." if not is_fr else "TOUTES les lignes triees par risque.",
@@ -291,7 +291,7 @@ if df is not None:
             output.seek(0)
             st.download_button(t['download_excel'], output, f"aynalyxai_{data_name.lower()}_report.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", type="primary")
         
-        st.markdown(f'<div class="cta-box"><h3> {t["get_full"]}</h3><p style="color:#555;">{t["full_features"]}</p><a href="https://mubsira.gumroad.com/l/aynalyxai" target="_blank" class="cta-button"> Get AynalyxAI Pro - $79</a></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="cta-box"><h3> {t["get_full"]}</h3><p style="color:#555;">{t["full_features"]}</p><a href="https://mubsira.gumroad.com/l/aynalyxai" target="_blank" class="cta-button"> Get AynalyxAI Pro</a></div>', unsafe_allow_html=True)
 else:
     st.markdown(f'<div class="feature-box"><h3> {t["what_is"]}</h3><p>{t["what_is_desc"]}</p></div>', unsafe_allow_html=True)
     st.markdown(f'''<div class="advantage-grid">
@@ -303,4 +303,4 @@ else:
     st.markdown(f'<div style="text-align:center;padding:3rem 2rem;background:linear-gradient(135deg,#f8fafc 0%,#e2e8f0 100%);border-radius:16px;margin-top:1rem;"><div style="font-size:4rem;margin-bottom:1rem;"></div><h2 style="color:#1e293b;">{t["welcome_title"]}</h2><p style="color:#64748b;font-size:1.1rem;">{t["welcome_text"]}</p></div>', unsafe_allow_html=True)
 
 st.markdown("---")
-st.markdown('<div style="text-align:center;color:#94a3b8;padding:1rem;">© 2025 Mubsira Analytics | <a href="https://mubsira.gumroad.com/l/aynalyxai" style="color:#667eea;">Get Full Version - $79</a></div>', unsafe_allow_html=True)
+st.markdown('<div style="text-align:center;color:#94a3b8;padding:1rem;">© 2025 Mubsira Analytics | <a href="https://mubsira.gumroad.com/l/aynalyxai" style="color:#667eea;">Get Full Version</a></div>', unsafe_allow_html=True)
