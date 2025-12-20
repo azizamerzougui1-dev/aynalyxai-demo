@@ -181,6 +181,32 @@ st.markdown("""
         color: #0369a1;
         margin: 0 0 1rem 0;
     }
+    
+    /* Scrollable result table with visible scrollbar */
+    [data-testid="stDataFrame"] > div {
+        max-height: 450px;
+        overflow-y: auto !important;
+        overflow-x: auto !important;
+    }
+    
+    [data-testid="stDataFrame"] > div::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+    }
+    
+    [data-testid="stDataFrame"] > div::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 5px;
+    }
+    
+    [data-testid="stDataFrame"] > div::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 5px;
+    }
+    
+    [data-testid="stDataFrame"] > div::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -619,8 +645,8 @@ if df is not None:
                 color_level, subset=[t['level']]
             ).format(precision=2)
             
-            # Display ALL rows
-            st.dataframe(styled_df, use_container_width=True, height=min(800, 50 + len(display_df) * 35))
+            # Display ALL rows with scrollbar (fixed height)
+            st.dataframe(styled_df, use_container_width=True, height=450)
             
             # Download button with formatted Excel
             st.markdown("<br>", unsafe_allow_html=True)
