@@ -497,7 +497,7 @@ if df is not None:
                         analysis_df[col] = analysis_df[col].round(2)
                 original_columns = df.columns.tolist()
             
-            # Perform anomaly detection
+            # Perform anomaly detection using Z-score method
             results = analysis_df.copy()
             results['Deviation_Score'] = 0.0
             results['AI_Score'] = 0.0
@@ -517,28 +517,35 @@ if df is not None:
                     mean = analysis_df[col].mean()
                     std = analysis_df[col].std()
                     if std > 0:
-                        z_score = abs((analysis_df[col].iloc[idx] - mean) / std)
+                        value = analysis_df[col].iloc[idx]
+                        z_score = abs((value - mean) / std)
                         if z_score > max_z_score:
                             max_z_score = z_score
                         total_score += z_score
                         score_count += 1
-                        if z_score > 1.5:  # Lower threshold to show more anomalies
-                            explanation = get_explanation(analysis_df[col].iloc[idx], mean, std, col, is_fr)
+                        if z_score > 1.5:
+                            explanation = get_explanation(value, mean, std, col, is_fr)
                             if explanation:
                                 row_explanations.append(explanation)
                 
-                # Deviation Score = max Z-score (statistical deviation) - round to 2 decimals
+                # Deviation Score = max Z-score across all columns
                 results.loc[idx, 'Deviation_Score'] = round(max_z_score, 2)
-                # AI Score = weighted combination (simulating ML model output) - round to 2 decimals
-                ai_score = min(100, max_z_score * 25) if max_z_score > 1.5 else max_z_score * 10
+                
+                # AI Score = normalized composite score (0-100)
+                if score_count > 0:
+                    avg_z = total_score / score_count
+                    ai_score = min(100, avg_z * 25)
+                else:
+                    ai_score = 0
                 results.loc[idx, 'AI_Score'] = round(ai_score, 2)
+                
                 results.loc[idx, 'Anomaly_Explanation'] = " | ".join(row_explanations) if row_explanations else ""
             
-            # Classify anomaly levels based on Deviation Score - adjusted thresholds
-            results.loc[results['Deviation_Score'] > 3.0, 'Anomaly_Level'] = t['critical']
-            results.loc[(results['Deviation_Score'] > 2.3) & (results['Deviation_Score'] <= 3.0), 'Anomaly_Level'] = t['high']
-            results.loc[(results['Deviation_Score'] > 1.8) & (results['Deviation_Score'] <= 2.3), 'Anomaly_Level'] = t['medium']
-            results.loc[(results['Deviation_Score'] > 1.5) & (results['Deviation_Score'] <= 1.8), 'Anomaly_Level'] = t['low']
+            # Classify anomaly levels based on Deviation Score (Z-score thresholds)
+            results.loc[results['Deviation_Score'] >= 3.0, 'Anomaly_Level'] = t['critical']
+            results.loc[(results['Deviation_Score'] >= 2.5) & (results['Deviation_Score'] < 3.0), 'Anomaly_Level'] = t['high']
+            results.loc[(results['Deviation_Score'] >= 2.0) & (results['Deviation_Score'] < 2.5), 'Anomaly_Level'] = t['medium']
+            results.loc[(results['Deviation_Score'] >= 1.5) & (results['Deviation_Score'] < 2.0), 'Anomaly_Level'] = t['low']
             
             # Sort results by Deviation Score (anomalies first, then normal)
             results_sorted = results.sort_values('Deviation_Score', ascending=False)
