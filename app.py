@@ -167,6 +167,20 @@ st.markdown("""
     .stFileUploader {
         display: none !important;
     }
+    
+    /* Aggregation box styling */
+    .agg-box {
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        border: 2px solid #0ea5e9;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin: 1.5rem 0;
+    }
+    
+    .agg-box h4 {
+        color: #0369a1;
+        margin: 0 0 1rem 0;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -199,13 +213,21 @@ t = {
     "explanation": "Explanation" if not is_fr else "Explication",
     "level": "Level" if not is_fr else "Niveau",
     "ai_score": "AI Score" if not is_fr else "Score IA",
-    "deviation_score": "Deviation Score" if not is_fr else "Score Déviation",
+    "deviation_score": "Deviation" if not is_fr else "Déviation",
     "welcome_title": "👈 Select Sample Data to Begin" if not is_fr else "👈 Sélectionnez des Données pour Commencer",
     "welcome_text": "Click one of the 4 sample data buttons in the sidebar to see the AI anomaly detection in action." if not is_fr else "Cliquez sur l'un des 4 boutons de données dans la barre latérale pour voir la détection d'anomalies en action.",
     "get_full": "Get Full Desktop Version" if not is_fr else "Obtenir la Version Complète",
     "full_features": "The full version includes: Advanced AI (Isolation Forest), Data Aggregation, Custom Ratios, 100% Offline Privacy, Unlimited Files" if not is_fr else "La version complète inclut: IA Avancée (Isolation Forest), Agrégation, Ratios Personnalisés, 100% Hors-ligne, Fichiers Illimités",
     "security_title": "⚠️ Security Notice" if not is_fr else "⚠️ Avis de Sécurité",
     "security_text": "**Windows may show a security warning** when you download and run the app. This is completely normal for new software from independent developers. AynalyxAI is safe and built with standard open-source tools. To proceed: click **'More info'** → **'Run anyway'**. Your antivirus may also scan the file — this is normal." if not is_fr else "**Windows peut afficher un avertissement de sécurité** lorsque vous téléchargez et lancez l'application. C'est tout à fait normal pour les nouveaux logiciels de développeurs indépendants. AynalyxAI est sécuritaire et construit avec des outils open-source standards. Pour continuer : cliquez sur **« Plus d'infos »** → **« Exécuter quand même »**. Votre antivirus peut aussi scanner le fichier — c'est normal.",
+    "aggregation_title": "📊 Data Aggregation (Optional)" if not is_fr else "📊 Agrégation des Données (Optionnel)",
+    "aggregation_help": "Group your data by a column before analysis. This lets you detect anomalies at the group level (e.g., per vendor, per department)." if not is_fr else "Regroupez vos données par une colonne avant l'analyse. Cela permet de détecter les anomalies au niveau du groupe (ex: par fournisseur, par département).",
+    "group_by": "Group by" if not is_fr else "Regrouper par",
+    "no_aggregation": "No aggregation (analyze raw rows)" if not is_fr else "Pas d'agrégation (analyser les lignes brutes)",
+    "aggregation_method": "Aggregation method" if not is_fr else "Méthode d'agrégation",
+    "sum": "Sum" if not is_fr else "Somme",
+    "mean": "Average" if not is_fr else "Moyenne",
+    "count": "Count" if not is_fr else "Comptage",
 }
 
 # Explanation templates - clean, no column prefix
@@ -225,7 +247,7 @@ def get_explanation(value, mean, std, col_name, is_fr):
             return f"{col_name}: {'below avg by' if not is_fr else 'sous moy de'} {abs(pct_diff):.0f}%"
     elif z_score > 2:
         return f"{col_name}: {'+' if pct_diff > 0 else ''}{pct_diff:.0f}% {'vs avg' if not is_fr else 'vs moy'}"
-    elif z_score > 1.8:
+    elif z_score > 1.5:
         return f"{col_name}: {'+' if pct_diff > 0 else ''}{pct_diff:.0f}%"
     else:
         return ""
@@ -345,16 +367,16 @@ with st.sidebar:
     # Track which sample is selected
     if btn_invoices:
         st.session_state['sample_type'] = 'invoices'
-        st.session_state['auto_run'] = True
+        st.session_state['run_clicked'] = False
     elif btn_expenses:
         st.session_state['sample_type'] = 'expenses'
-        st.session_state['auto_run'] = True
+        st.session_state['run_clicked'] = False
     elif btn_payroll:
         st.session_state['sample_type'] = 'payroll'
-        st.session_state['auto_run'] = True
+        st.session_state['run_clicked'] = False
     elif btn_inventory:
         st.session_state['sample_type'] = 'inventory'
-        st.session_state['auto_run'] = True
+        st.session_state['run_clicked'] = False
 
 # Load data based on selection
 df = None
@@ -381,60 +403,116 @@ if df is not None:
     st.dataframe(df.head(10), use_container_width=True, height=300)
     st.caption(f"{'Affichage de 10 sur' if is_fr else 'Showing 10 of'} {len(df)} {'lignes' if is_fr else 'rows'}")
     
-    # Get numeric columns
+    # Get numeric and text columns
     numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+    text_cols = df.select_dtypes(include=['object']).columns.tolist()
     
-    # Store original columns list (before adding result columns)
-    original_columns = df.columns.tolist()
+    st.markdown("---")
     
-    # Auto-run analysis when sample is selected
-    if numeric_cols and st.session_state.get('auto_run', False):
-        st.session_state['auto_run'] = False
-        
+    # Aggregation Options
+    st.markdown(f"""
+    <div class="agg-box">
+        <h4>📊 {t['aggregation_title']}</h4>
+        <p style="color: #0369a1; margin: 0; font-size: 0.9rem;">{t['aggregation_help']}</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        group_options = [t['no_aggregation']] + text_cols
+        group_by = st.selectbox(t['group_by'], group_options, key="group_by_select")
+    
+    with col2:
+        agg_method = st.selectbox(
+            t['aggregation_method'], 
+            [t['sum'], t['mean'], t['count']], 
+            key="agg_method_select"
+        )
+    
+    # Map aggregation method
+    agg_func_map = {t['sum']: 'sum', t['mean']: 'mean', t['count']: 'count'}
+    agg_func = agg_func_map.get(agg_method, 'sum')
+    
+    # Run button
+    st.markdown("<br>", unsafe_allow_html=True)
+    run_analysis = st.button(t['run_analysis'], type="primary", use_container_width=True)
+    
+    if run_analysis:
+        st.session_state['run_clicked'] = True
+    
+    # Run analysis when button is clicked
+    if st.session_state.get('run_clicked', False) and numeric_cols:
         st.markdown("---")
         st.subheader(t['results'])
         
         with st.spinner("🔍 " + ("Analyse en cours..." if is_fr else "Analyzing...")):
+            # Apply aggregation if selected
+            if group_by != t['no_aggregation']:
+                # Aggregate the data
+                if agg_func == 'count':
+                    analysis_df = df.groupby(group_by).size().reset_index(name='Count')
+                    numeric_cols = ['Count']
+                else:
+                    analysis_df = df.groupby(group_by)[numeric_cols].agg(agg_func).reset_index()
+                
+                # Round aggregated values to 2 decimals
+                for col in numeric_cols:
+                    if col in analysis_df.columns:
+                        analysis_df[col] = analysis_df[col].round(2)
+                
+                original_columns = analysis_df.columns.tolist()
+                st.info(f"📊 {'Données agrégées par' if is_fr else 'Data aggregated by'} **{group_by}** ({agg_method}) — **{len(analysis_df)}** {'groupes' if is_fr else 'groups'}")
+            else:
+                analysis_df = df.copy()
+                # Round numeric columns to 2 decimals
+                for col in numeric_cols:
+                    if col in analysis_df.columns:
+                        analysis_df[col] = analysis_df[col].round(2)
+                original_columns = df.columns.tolist()
+            
             # Perform anomaly detection
-            results = df.copy()
+            results = analysis_df.copy()
             results['Deviation_Score'] = 0.0
             results['AI_Score'] = 0.0
             results['Anomaly_Level'] = t['normal']
             results['Anomaly_Explanation'] = ""
             
             # Calculate anomaly scores for each numeric column
-            for idx in range(len(df)):
+            for idx in range(len(analysis_df)):
                 row_explanations = []
                 max_z_score = 0
                 total_score = 0
                 score_count = 0
                 
                 for col in numeric_cols:
-                    mean = df[col].mean()
-                    std = df[col].std()
+                    if col not in analysis_df.columns:
+                        continue
+                    mean = analysis_df[col].mean()
+                    std = analysis_df[col].std()
                     if std > 0:
-                        z_score = abs((df[col].iloc[idx] - mean) / std)
+                        z_score = abs((analysis_df[col].iloc[idx] - mean) / std)
                         if z_score > max_z_score:
                             max_z_score = z_score
                         total_score += z_score
                         score_count += 1
-                        if z_score > 1.8:  # Only explain significant deviations
-                            explanation = get_explanation(df[col].iloc[idx], mean, std, col, is_fr)
+                        if z_score > 1.5:  # Lower threshold to show more anomalies
+                            explanation = get_explanation(analysis_df[col].iloc[idx], mean, std, col, is_fr)
                             if explanation:
                                 row_explanations.append(explanation)
                 
-                # Deviation Score = max Z-score (statistical deviation)
+                # Deviation Score = max Z-score (statistical deviation) - round to 2 decimals
                 results.loc[idx, 'Deviation_Score'] = round(max_z_score, 2)
-                # AI Score = weighted combination (simulating ML model output)
+                # AI Score = weighted combination (simulating ML model output) - round to 2 decimals
                 ai_score = min(100, max_z_score * 25) if max_z_score > 1.5 else max_z_score * 10
-                results.loc[idx, 'AI_Score'] = round(ai_score, 1)
+                results.loc[idx, 'AI_Score'] = round(ai_score, 2)
                 results.loc[idx, 'Anomaly_Explanation'] = " | ".join(row_explanations) if row_explanations else ""
             
-            # Classify anomaly levels based on Deviation Score
+            # Classify anomaly levels based on Deviation Score - adjusted thresholds
             results.loc[results['Deviation_Score'] > 3.0, 'Anomaly_Level'] = t['critical']
-            results.loc[(results['Deviation_Score'] > 2.5) & (results['Deviation_Score'] <= 3.0), 'Anomaly_Level'] = t['high']
-            results.loc[(results['Deviation_Score'] > 2.0) & (results['Deviation_Score'] <= 2.5), 'Anomaly_Level'] = t['medium']
-            results.loc[(results['Deviation_Score'] > 1.8) & (results['Deviation_Score'] <= 2.0), 'Anomaly_Level'] = t['low']
+            results.loc[(results['Deviation_Score'] > 2.3) & (results['Deviation_Score'] <= 3.0), 'Anomaly_Level'] = t['high']
+            results.loc[(results['Deviation_Score'] > 1.8) & (results['Deviation_Score'] <= 2.3), 'Anomaly_Level'] = t['medium']
+            results.loc[(results['Deviation_Score'] > 1.5) & (results['Deviation_Score'] <= 1.8), 'Anomaly_Level'] = t['low']
             
             # Sort results by Deviation Score (anomalies first, then normal)
             results_sorted = results.sort_values('Deviation_Score', ascending=False)
@@ -482,7 +560,7 @@ if df is not None:
                 st.markdown(f"""
                 <div class="stat-card" style="border-color: #667eea;">
                     <div style="font-size: 2rem; font-weight: bold; color: #667eea;">{n_total}</div>
-                    <div style="color: #666;">📊 {'Anomalies' if not is_fr else 'Anomalies'}</div>
+                    <div style="color: #666;">📊 Total</div>
                 </div>
                 """, unsafe_allow_html=True)
             
@@ -492,13 +570,16 @@ if df is not None:
             st.info(f"📊 {'Affichage de toutes les' if is_fr else 'Showing all'} **{len(results_sorted)}** {'lignes' if is_fr else 'rows'} — **{n_total}** {'anomalies détectées' if is_fr else 'anomalies detected'}, **{n_normal}** {'normales' if is_fr else 'normal'}")
             
             # Create display dataframe with ALL rows and ALL columns
-            # Original columns on the LEFT, result columns on the RIGHT
             display_df = results_sorted.reset_index(drop=True).copy()
             
             # Reorder columns: original columns first, then result columns
             result_columns = ['Anomaly_Level', 'Deviation_Score', 'AI_Score', 'Anomaly_Explanation']
-            ordered_columns = original_columns + result_columns
+            ordered_columns = [c for c in original_columns if c in display_df.columns] + result_columns
             display_df = display_df[ordered_columns]
+            
+            # Round all numeric columns to 2 decimals for display
+            for col in display_df.select_dtypes(include=[np.number]).columns:
+                display_df[col] = display_df[col].round(2)
             
             # Rename only the result columns for display
             col_rename = {
@@ -533,10 +614,10 @@ if df is not None:
                     return ['background-color: #f0fdf4;'] * len(row)
                 return [''] * len(row)
             
-            # Style and display ALL results - no height limit, show everything
+            # Style and display ALL results
             styled_df = display_df.style.apply(color_row, axis=1).map(
                 color_level, subset=[t['level']]
-            )
+            ).format(precision=2)
             
             # Display ALL rows
             st.dataframe(styled_df, use_container_width=True, height=min(800, 50 + len(display_df) * 35))
