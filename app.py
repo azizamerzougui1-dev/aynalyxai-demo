@@ -381,7 +381,7 @@ if df is not None:
                              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", type="primary")
         
         # CTA Box
-        st.markdown(f'<div class="cta-box"><h3>🚀 {t["get_full"]}</h3><p style="color:#555;">{t["full_features"]}</p><a href="https://mubsira.gumroad.com/l/aynalyxai" target="_blank" class="cta-button">💎 Get AynalyxAI Pro</a></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="cta-box"><h3>🚀 {t["get_full"]}</h3><p style="color:#555;">{t["full_features"]}</p><a href="https://aynalyx.gumroad.com/l/qpqmv" target="_blank" class="cta-button">💎 Get AynalyxAI Pro</a></div>', unsafe_allow_html=True)
 
 else:
     # Welcome screen
@@ -395,4 +395,4 @@ else:
     st.markdown(f'<div style="text-align:center;padding:3rem 2rem;background:linear-gradient(135deg,#f8fafc 0%,#e2e8f0 100%);border-radius:16px;margin-top:1rem;"><div style="font-size:4rem;margin-bottom:1rem;">👈</div><h2 style="color:#1e293b;">{t["welcome_title"]}</h2><p style="color:#64748b;font-size:1.1rem;">{t["welcome_text"]}</p></div>', unsafe_allow_html=True)
 
 st.markdown("---")
-st.markdown('<div style="text-align:center;color:#94a3b8;padding:1rem;">© 2025 Mubsira Analytics | <a href="https://mubsira.gumroad.com/l/aynalyxai" style="color:#667eea;">Get Full Version</a></div>', unsafe_allow_html=True)
+st.markdown('<div style="text-align:center;color:#94a3b8;padding:1rem;">© 2025 Mubsira Analytics | <a href="https://aynalyx.gumroad.com/l/qpqmv" style="color:#667eea;">Get Full Version</a></div>', unsafe_allow_html=True)
