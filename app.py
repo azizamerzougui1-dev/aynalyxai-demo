@@ -9,7 +9,7 @@ from sklearn.preprocessing import StandardScaler
 from io import BytesIO
 from openpyxl.styles import PatternFill, Font, Border, Side
 
-st.set_page_config(page_title="AynalyxAI Demo", page_icon="🔬", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="AynalyxAI Demo", page_icon="🔬", layout="centered", initial_sidebar_state="collapsed")
 
 st.markdown("""
 <style>
@@ -36,6 +36,29 @@ st.markdown("""
     .advantage-item .icon { font-size: 2rem; margin-bottom: 0.5rem; }
     .advantage-item h4 { color: #334155; margin: 0 0 0.25rem 0; font-size: 0.95rem; }
     .advantage-item p { color: #64748b; margin: 0; font-size: 0.85rem; }
+    
+    /* ========== MOBILE RESPONSIVE CSS ========== */
+    @media (max-width: 768px) {
+        .main .block-container { padding: 1rem 0.5rem !important; }
+        .main-header { padding: 1rem !important; border-radius: 8px !important; }
+        .main-header h1 { font-size: 1.5rem !important; }
+        .main-header p { font-size: 0.9rem !important; }
+        [data-testid="column"] { width: 100% !important; flex: 1 1 100% !important; }
+        .stat-card { padding: 0.75rem !important; margin-bottom: 0.5rem !important; }
+        .advantage-grid { grid-template-columns: 1fr !important; gap: 0.75rem !important; }
+        .feature-box { padding: 1rem !important; }
+        .cta-box { padding: 1rem !important; }
+        .stDataFrame { max-height: 350px !important; overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; }
+        .stButton button { padding: 0.5rem 1rem !important; font-size: 0.9rem !important; }
+        .demo-badge { padding: 0.5rem 0.75rem !important; font-size: 0.85rem !important; }
+    }
+    @media (max-width: 480px) {
+        .main-header h1 { font-size: 1.3rem !important; }
+        .advantage-item { padding: 0.75rem !important; }
+        .advantage-item .icon { font-size: 1.5rem !important; }
+        .advantage-item h4 { font-size: 0.85rem !important; }
+        .advantage-item p { font-size: 0.75rem !important; }
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -212,6 +235,7 @@ def run_aggregation(df, group_col, numeric_cols, is_fr):
     agg_numeric_cols = numeric_cols + ['Count']
     results = run_anomaly_detection(agg_df, agg_numeric_cols, is_fr)
     return results
+
 # ============================================================================
 
 st.markdown(f'<div class="main-header"><h1>🔬 {t["title"]}</h1><p>{t["subtitle"]}</p></div>', unsafe_allow_html=True)
@@ -379,7 +403,7 @@ if df is not None:
             
             st.download_button(t['download_excel'], output, f"aynalyxai_{data_name.lower()}_report.xlsx", 
                              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", type="primary")
-        
+
         # CTA Box
         st.markdown(f'<div class="cta-box"><h3>🚀 {t["get_full"]}</h3><p style="color:#555;">{t["full_features"]}</p><a href="https://aynalyx.gumroad.com/l/qpqmv" target="_blank" class="cta-button">💎 Get AynalyxAI Pro</a></div>', unsafe_allow_html=True)
 
